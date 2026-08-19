@@ -1,0 +1,19 @@
+{
+  "name": "post-so-fast",
+  "version": "0.1.0",
+  "description": "MCP server that uploads local videos to Cloudflare R2 and pushes them to the TikTok inbox/draft via the Content Posting API",
+  "type": "module",
+  "bin": {
+    "post-so-fast": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "auth": "node scripts/auth.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "aws4fetch": "^1.0.20",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  }
+}
