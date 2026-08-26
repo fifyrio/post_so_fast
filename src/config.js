@@ -12,6 +12,9 @@ export const config = {
     clientKey: process.env.TIKTOK_CLIENT_KEY ?? '',
     clientSecret: process.env.TIKTOK_CLIENT_SECRET ?? '',
     redirectUri: process.env.TIKTOK_REDIRECT_URI ?? 'http://localhost:4477/callback',
+    // Local port the callback server listens on. May differ from the redirect
+    // URI's port when a tunnel (ngrok/cloudflared) forwards an https URL here.
+    callbackPort: Number(process.env.TIKTOK_CALLBACK_PORT) || 4477,
     scopes: process.env.TIKTOK_SCOPES ?? 'video.upload',
     source: (process.env.TIKTOK_SOURCE ?? 'FILE_UPLOAD').toUpperCase(),
   },
