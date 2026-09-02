@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { config } from './config.js';
 import { listAccounts } from './store.js';
 import { authorizeAccount, getValidAccessToken } from './tiktok/oauth.js';
-import { publishFromUrl, publishFromFile, fetchStatus } from './tiktok/publish.js';
+import { publishFromUrl, publishFromFile, publishPhotosFromUrls, fetchStatus } from './tiktok/publish.js';
 import { uploadToR2 } from './r2.js';
 
 const server = new McpServer({ name: 'post-so-fast', version: '0.1.0' });
@@ -81,6 +81,52 @@ server.registerTool(
         account,
         mode,
         r2Url: uploaded.url,
+        publishId: result.publishId,
+        note: 'Open the TikTok app notifications to finish editing and publish.',
+      });
+    } catch (err) {
+      return fail(err.message);
+    }
+  },
+);
+
+server.registerTool(
+  'post_photo',
+  {
+    title: 'Upload a photo carousel to a TikTok account inbox (draft)',
+    description:
+      'Upload one or more local images to R2, then push them as a photo post to the TikTok ' +
+      'inbox for the chosen account. Photos only support PULL_FROM_URL, so the R2 domain must be ' +
+      'verified under URL properties in the TikTok dev portal (needs a custom domain on the bucket).',
+    inputSchema: {
+      account: z.string().describe('Account label previously authorized via auth_account'),
+      imagePaths: z
+        .array(z.string())
+        .min(1)
+        .max(35)
+        .describe('Absolute paths to local .jpg/.png/.webp files, in display order'),
+      title: z.string().optional().describe('Optional post title'),
+      description: z.string().optional().describe('Optional post caption/description'),
+      coverIndex: z.number().int().min(0).optional().describe('Index of the cover image (default 0)'),
+    },
+  },
+  async ({ account, imagePaths, title, description, coverIndex }) => {
+    try {
+      const accessToken = await getValidAccessToken(account);
+      const uploaded = [];
+      for (const imagePath of imagePaths) {
+        uploaded.push(await uploadToR2(imagePath, { keyPrefix: `tiktok/${account}/photos` }));
+      }
+      const result = await publishPhotosFromUrls(
+        accessToken,
+        uploaded.map((u) => u.url),
+        { title: title ?? '', description: description ?? '', coverIndex: coverIndex ?? 0 },
+      );
+      return text({
+        account,
+        mediaType: 'PHOTO',
+        imageCount: uploaded.length,
+        r2Urls: uploaded.map((u) => u.url),
         publishId: result.publishId,
         note: 'Open the TikTok app notifications to finish editing and publish.',
       });
