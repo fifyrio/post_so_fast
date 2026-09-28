@@ -99,8 +99,9 @@ export function authorizeAccount(label, { timeoutMs = 300_000 } = {}) {
     });
 
     server.on('error', reject);
-    const port = Number(redirect.port) || 80;
-    server.listen(port, () => {
+    // Listen on the local callback port, which may differ from the redirect
+    // URI's port when a tunnel forwards an external https URL to this process.
+    server.listen(config.tiktok.callbackPort, () => {
       const timer = setTimeout(() => {
         server.close();
         reject(new Error('Authorization timed out'));

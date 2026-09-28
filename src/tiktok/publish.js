@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 const INBOX_INIT_URL = 'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/';
+const CONTENT_INIT_URL = 'https://open.tiktokapis.com/v2/post/publish/content/init/';
 const STATUS_URL = 'https://open.tiktokapis.com/v2/post/publish/status/fetch/';
 
 const MB = 1024 * 1024;
@@ -87,6 +88,26 @@ export async function publishFromFile(accessToken, filePath, contentType = 'vide
   for (const range of ranges) {
     await putChunk(data.upload_url, buffer, range, size, contentType);
   }
+  return { publishId: data.publish_id };
+}
+
+// Photo carousel to the inbox/draft. Photos only support PULL_FROM_URL, so the
+// images must already be hosted (we upload them to R2 first). MEDIA_UPLOAD =
+// the draft flow: the post lands in the TikTok app for final edit and publish.
+export async function publishPhotosFromUrls(accessToken, imageUrls, { title = '', description = '', coverIndex = 0 } = {}) {
+  if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+    throw new Error('At least one image URL is required');
+  }
+  const data = await postJson(CONTENT_INIT_URL, accessToken, {
+    post_info: { title, description },
+    source_info: {
+      source: 'PULL_FROM_URL',
+      photo_cover_index: coverIndex,
+      photo_images: imageUrls,
+    },
+    post_mode: 'MEDIA_UPLOAD',
+    media_type: 'PHOTO',
+  });
   return { publishId: data.publish_id };
 }
 
